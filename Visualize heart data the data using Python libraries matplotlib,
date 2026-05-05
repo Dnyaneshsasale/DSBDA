@@ -1,0 +1,60 @@
+import pandas as pd 
+import matplotlib.pyplot as plt 
+import seaborn as sns 
+
+# ------------------ 1. Load Dataset ------------------ 
+df = pd.read_csv('heart_disease_uci.csv') 
+
+# ------------------ 2. Create Target ------------------ 
+df['target'] = df['num'].apply(lambda x: 0 if x == 0 else 1) 
+
+# Style
+sns.set(style="whitegrid") 
+
+# ------------------ 3. Correlation Heatmap ------------------ 
+plt.figure(figsize=(10,6)) 
+sns.heatmap(df.corr(numeric_only=True), annot=True, cmap='coolwarm') 
+plt.title("Correlation Heatmap") 
+plt.tight_layout()
+plt.show() 
+
+# ------------------ 4. Countplot ------------------ 
+plt.figure(figsize=(5,4))
+sns.countplot(x='target', data=df) 
+plt.title("Heart Disease Count") 
+plt.xlabel("Target (0 = No Disease, 1 = Disease)")
+plt.ylabel("Count")
+plt.show() 
+
+# ------------------ 5. Boxplot ------------------ 
+plt.figure(figsize=(6,4))
+sns.boxplot(x='target', y='chol', data=df) 
+plt.title("Cholesterol vs Heart Disease") 
+plt.xlabel("Target")
+plt.ylabel("Cholesterol")
+plt.show() 
+
+# ------------------ 6. Histogram ------------------ 
+df[['age','chol','thalch']].hist(figsize=(10,4)) 
+plt.suptitle("Feature Distributions")
+plt.tight_layout()
+plt.show() 
+
+# ------------------ 7. KDE Plot ------------------ 
+plt.figure(figsize=(6,4))
+sns.kdeplot(df['age'], fill=True) 
+plt.title("Age Distribution") 
+plt.xlabel("Age")
+plt.show() 
+
+# ------------------ 8. Scatter Plot ------------------ 
+plt.figure(figsize=(6,4))
+sns.scatterplot(x='age', y='chol', hue='target', data=df) 
+plt.title("Age vs Cholesterol") 
+plt.xlabel("Age")
+plt.ylabel("Cholesterol")
+plt.show() 
+
+# ------------------ 9. Pairplot (Extra - Strong Impact) ------------------ 
+sns.pairplot(df[['age','chol','thalch','target']], hue='target')
+plt.show()
