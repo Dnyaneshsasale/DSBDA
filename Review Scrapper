@@ -1,0 +1,35 @@
+first install in command prompt
+// pip install requests beautifulsoup4
+
+
+import requests
+from bs4 import BeautifulSoup
+
+# Step 1: URL (product page)
+url = "http://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html"
+
+headers = {
+    "User-Agent": "Mozilla/5.0"
+}
+
+response = requests.get(url, headers=headers)
+soup = BeautifulSoup(response.content, "html.parser")
+
+# Step 2: Product Name
+title = soup.find("h1").text
+
+# Step 3: Rating (class contains rating)
+rating_class = soup.find("p", class_="star-rating")["class"][1]
+
+# Step 4: Description (acts as review)
+description = soup.find("meta", attrs={"name": "description"})["content"].strip()
+
+# Step 5: Category (acts as tag)
+category = soup.find("ul", class_="breadcrumb").find_all("li")[2].text.strip()
+
+# Step 6: Display Output
+print("📚 Product Name:", title)
+print("👤 Customer Name: Anonymous")  # simulated
+print("⭐ Rating:", rating_class)
+print("💬 Review:", description)
+print("🏷️ Tag (Category):", category)
