@@ -1,0 +1,83 @@
+import pandas as pd 
+import numpy as np 
+from sklearn.model_selection import train_test_split 
+from sklearn.preprocessing import PowerTransformer 
+from sklearn.linear_model import LinearRegression 
+from sklearn.tree import DecisionTreeRegressor 
+from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error 
+
+# Load data 
+data = pd.read_csv('AirQuality.csv', sep=';') 
+
+# ------------------ 1. Data Cleaning ------------------ 
+data.drop(columns=['Unnamed: 15', 'Unnamed: 16', 'Date', 'Time'], inplace=True) 
+
+cols_to_fix = ['CO(GT)', 'C6H6(GT)', 'T', 'RH', 'AH'] 
+
+for col in cols_to_fix: 
+    data[col] = data[col].str.replace(',', '.') 
+    data[col] = data[col].astype(float) 
+
+# ------------------ 2. Data Integration ------------------ 
+data.dropna(inplace=True) 
+data.drop_duplicates(inplace=True, ignore_index=True) 
+
+# ------------------ 3. Data Transformation ------------------ 
+def remove_outliers(data, column, lower=0.01, upper=0.99): 
+    low = data[column].quantile(lower) 
+    high = data[column].quantile(upper) 
+    return data[(data[column] >= low) & (data[column] <= high)] 
+
+df = data.copy() 
+
+# Remove outliers
+for col in cols_to_fix: 
+    df = remove_outliers(df, col) 
+
+df.reset_index(drop=True, inplace=True)
+
+# Apply Power Transformation ONLY on features (not target)
+X = df.drop('AH', axis=1)
+y = df['AH']
+
+pt = PowerTransformer(method='yeo-johnson')
+X_transformed = pd.DataFrame(pt.fit_transform(X), columns=X.columns)
+
+# ------------------ 4. Error Checking ------------------ 
+print("Missing Values:\n", X_transformed.isnull().sum()) 
+print("\nData Types:\n", X_transformed.dtypes) 
+
+z_scores = (X_transformed - X_transformed.mean()) / X_transformed.std() 
+extreme_values = (np.abs(z_scores) > 3).sum() 
+
+print("\nExtreme values (>3 std dev):\n", extreme_values) 
+
+# ------------------ 5. Model Building ------------------ 
+X_train, X_test, y_train, y_test = train_test_split( 
+    X_transformed, y, train_size=0.8, random_state=6, shuffle=True 
+) 
+
+# Linear Regression 
+lr_model = LinearRegression() 
+lr_model.fit(X_train, y_train) 
+lr_pred = lr_model.predict(X_test) 
+
+# Decision Tree 
+dt_model = DecisionTreeRegressor() 
+dt_model.fit(X_train, y_train) 
+dt_pred = dt_model.predict(X_test) 
+
+# ------------------ 6. Evaluation ------------------ 
+def evaluate_model(name, y_true, y_pred): 
+    r2 = r2_score(y_true, y_pred) 
+    mae = mean_absolute_error(y_true, y_pred) 
+    mse = mean_squared_error(y_true, y_pred) 
+
+    print(f"\n{name} Model:") 
+    print(f"R2 Score : {r2:.4f}") 
+    print(f"MAE : {mae:.4f}")          
+    print(f"MSE : {mse:.4f}")       
+    print(f"Accuracy (%) : {r2*100:.2f}%") 
+
+evaluate_model("Linear Regression", y_test, lr_pred) 
+evaluate_model("Decision Tree", y_test, dt_pred) 
