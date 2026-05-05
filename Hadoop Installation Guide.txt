@@ -1,0 +1,185 @@
+sudo apt update
+sudo apt install openjdk-8-jdk -y
+java -version
+
+//SSH setup 
+
+sudo apt install ssh -y 
+ssh-keygen -t rsa -P ""  // it will ask for password
+
+mkdir -p ~/.ssh     // Create folder
+touch ~/.ssh/authorized_keys   // Create authorized_keys file
+cat 123.pub >> ~/.ssh/authorized_keys 
+chmod 600 ~/.ssh/authorized_keys
+ssh localhost  // Say Yes and give password which you previously gave
+
+
+// Hadoop file ko extract and move karo 
+
+wget https://archive.apache.org/dist/hadoop/common/hadoop-2.9.0/hadoop-2.9.0.tar.gz             // download the Hadoop
+ls                   // to see installed file
+tar -xvzf hadoop-2.9.0.tar.gz   // for extracting file
+ls             // to verify hadoop installed or not
+sudo mv hadoop-2.9.0 /usr/local/hadoop
+nano ~/.bashrc
+
+export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+export HADOOP_HOME=/usr/local/hadoop
+export PATH=$PATH:$HADOOP_HOME/bin
+export PATH=$PATH:$HADOOP_HOME/sbin
+export HADOOP_MAPRED_HOME=$HADOOP_HOME
+export HADOOP_COMMON_HOME=$HADOOP_HOME
+export HADOOP_HDFS_HOME=$HADOOP_HOME
+export YARN_HOME=$HADOOP_HOME
+export HADOOP_COMMON_LIB_NATIVE_DIR=$HADOOP_HOME/lib/native
+export HADOOP_OPTS="-Djava.library.path=$HADOOP_HOME/lib"
+export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop
+
+ //  Press Ctrl + O → Enter
+//  Press Ctrl + X
+// then get out from editor cltr+x  Yes or no 
+
+source ~/.bashrc
+
+echo $HADOOP_HOME  // verify  
+
+Step 3: Configure Hadoop
+
+cd $HADOOP_HOME/etc/Hadoop  
+nano core-site.xml
+
+// Inside <configuration> ... </configuration>, paste this:
+
+	 <property>
+        <name>fs.defaultFS</name>
+        <value>hdfs://localhost:9000</value>
+    </property>
+
+//Press Ctrl + O → Enter
+//Press Ctrl + X
+
+nano hdfs-site.xml 
+
+// paste this inside  <configuration> ... </configuration>  ::
+	<property> 
+<name>dfs.replication</name> 
+<value>1</value> 
+</property> 
+<property> 
+    <name>dfs.namenode.name.dir</name> 
+    <value>file:///usr/local/hadoop/hdfs/namenode</value> 
+  </property> 
+  <property> 
+    <name>dfs.datanode.data.dir</name> 
+    <value>file:///usr/local/hadoop/hdfs/datanode</value> 
+  </property> 
+  <property> 
+    <name>dfs.namenode.rpc-address</name> 
+    <value>localhost:9000</value> 
+  </property> 
+  <property> 
+    <name>dfs.namenode.http-address</name> 
+    <value>localhost:9870</value> 
+  </property>
+
+//Press Ctrl + O → Enter
+//Press Ctrl + X
+
+cp mapred-site.xml.template mapred-site.xml
+nano mapred-site.xml 
+
+// paste this inside the  <configuration> ... </configuration>  ::
+
+  <property> 
+    <name>mapreduce.framework.name</name> 
+    <value>yarn</value> 
+  </property>
+
+//Press Ctrl + O → Enter
+//Press Ctrl + X
+
+nano yarn-site.xml
+
+// paste this inside the  <configuration> ... </configuration>  ::
+<property> 
+<name>yarn.resourcemanager.address</name> 
+<value>localhost:8032</value> 
+</property> 
+<property> 
+<name>yarn.nodemanager.aux-services</name> 
+<value>mapreduce_shuAle</value> 
+</property>
+
+
+//Press Ctrl + O → Enter
+//Press Ctrl + X
+
+nano hadoop-env.sh
+
+
+//Press Ctrl + X
+
+export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+hdfs namenode -format
+start-dfs.sh    // it will throw an error along with password say yes and continue
+nano $HADOOP_HOME/etc/hadoop/hadoop-env.sh
+
+// Find this line:
+
+// Replace it with:
+
+export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+
+//Press Ctrl + O → Enter
+//Press Ctrl + X
+
+ ssh localhost  
+
+nano /usr/local/hadoop/etc/hadoop/hadoop-env.sh
+
+//Press Ctrl + O → Enter
+//Press Ctrl + X
+
+ls /usr/lib/jvm/  // to verify
+
+echo $JAVA_HOME
+
+start-dfs.sh
+
+// password issue 
+ssh-keygen -t rsa -P ""
+
+ssh-copy-id localhost
+
+ssh localhost   // will ask password
+exit
+ssh-keygen -t rsa -P ""
+ssh-copy-id localhost  // overite no
+
+ssh-copy-id localhost
+
+ssh-keygen -t rsa
+
+👉 When it asks:
+
+// Enter file in which to save the key (/home/dnyanesh/.ssh/id_rsa):
+
+➡️ Just press Enter
+
+👉 When it asks passphrase:
+➡️ Press Enter (keep it empty)
+
+ls ~/.ssh 
+cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
+chmod 700 ~/.ssh
+chmod 600 ~/.ssh/authorized_keys
+ssh localhost
+
+stop-dfs.sh
+start-dfs.sh
+
+🌐 Open Hadoop Web UI (important for viva)
+
+Open browser and go to:
+
+http://localhost:9870

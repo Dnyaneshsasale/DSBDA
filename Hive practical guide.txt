@@ -1,0 +1,211 @@
+start-dfs.sh
+start-yarn.sh
+which hive
+cd /usr/local/hive/bin
+// if it shows -bash: cd: /usr/local/hive/bin: No such file or directory 
+wget https://archive.apache.org/dist/hive/hive-3.1.3/apache-hive-3.1.3-bin.tar.gz // it will download the hive 
+tar -xvzf apache-hive-3.1.3-bin.tar.gz
+sudo mv apache-hive-3.1.3-bin /usr/local/hive
+nano ~/.bashrc
+//Scroll to the bottom of the file using arrow keys ↓ and add this at the end:
+
+# Hive configuration
+export HIVE_HOME=/usr/local/hive
+export PATH=$PATH:$HIVE_HOME/bin
+
+// cltr+o enter and cltr x
+
+source ~/.bashrc
+
+hive --version
+
+hive
+
+show databases;  // if it throws an error then
+
+cd /usr/local/hive/conf
+nano hive-site.xml
+
+//paste this 
+
+<configuration>
+
+<property>
+  <name>javax.jdo.option.ConnectionURL</name>
+  <value>jdbc:derby:;databaseName=metastore_db;create=true</value>
+</property>
+
+<property>
+  <name>javax.jdo.option.ConnectionDriverName</name>
+  <value>org.apache.derby.jdbc.EmbeddedDriver</value>
+</property>
+
+<property>
+  <name>hive.metastore.warehouse.dir</name>
+  <value>/user/hive/warehouse</value>
+</property>
+
+<property>
+  <name>hive.metastore.schema.verification</name>
+  <value>false</value>
+</property>
+
+</configuration>
+
+// cltr+o enter and cltr x
+hdfs dfs -mkdir -p /user/hive/warehouse
+hdfs dfs -chmod g+w /user/hive/warehouse
+schematool -dbType derby -initSchema
+hive
+show databases;
+create database flights_info;
+use flights_info;
+CREATE TABLE flights (flight_id INT, flight_date STRING,carrier STRING,origin
+STRING,destination STRING,dep_delay INT,arr_delay INT) row format delimited fields
+terminated by ',' stored as textfile;
+INSERT INTO TABLE flights VALUES (1001, '2008-01-01', 'AA', 'JFK', 'LAX', 10, 5);
+
+
+select * from flights;
+2) Alter table:
+hive> ALTER TABLE flights ADD COLUMNS (flight_duration INT);
+3) External Table:
+CREATE EXTERNAL TABLE IF NOT EXISTS external_airports (airport_code
+STRING,airport_name STRING, city STRING, state string) row format delimited fields terminated
+by ',' stored as textfile;
+INSERT INTO external_airports VALUES ('CSTM','shivaji maharaj','mumbai','MH');
+select * from external_airports;
+LOAD DATA LOCAL INPATH '/home/pl/Desktop/external_airport.txt' INTO TABLE
+external_airports;
+select * from external_airports;
+3) Join:
+SELECT f.flight_id, a.airport_name
+FROM flights f
+JOIN external_airports a
+ON f.origin = a.airport_code;
+
+
+4) Average operation:
+SELECT AVG(dep_delay) AS avg_departure_delay
+FROM flights;
+5) Indexing:
+CREATE INDEX idx_airport_code
+ON TABLE external_airports (airport_code)
+AS 'COMPACT'
+WITH DEFERRED REBUILD;
+ALTER INDEX idx_airport_code ON external_airports REBUILD;
+
+
+
+
+
+
+
+if any error throws use this 
+Delete old Derby metastore
+
+Run this carefully:
+
+cd /usr/local/hive
+rm -rf metastore_db derby.log
+
+
+
+
+
+if Kill Command = /usr/local/hadoop/bin/mapred job  -kill job_1777951061512_0001  this error show after inserting then 
+
+Step 1: Stop everything
+stop-yarn.sh
+stop-dfs.sh
+Step 2: Start again cleanly
+start-dfs.sh
+start-yarn.sh
+
+Step 3: Check services
+
+Run:
+
+jps
+
+You must see:
+
+NameNode
+DataNode
+ResourceManager
+NodeManager
+
+dnyanesh@Dnyanesh:/usr/local/hive$ cd /usr/local/hadoop/logs
+dnyanesh@Dnyanesh:/usr/local/hadoop/logs$ ls
+SecurityAuth-dnyanesh.audit                     hadoop-dnyanesh-secondarynamenode-Dnyanesh.out.1
+hadoop-dnyanesh-datanode-Dnyanesh.log           hadoop-dnyanesh-secondarynamenode-Dnyanesh.out.2
+hadoop-dnyanesh-datanode-Dnyanesh.out           hadoop-dnyanesh-secondarynamenode-Dnyanesh.out.3
+hadoop-dnyanesh-datanode-Dnyanesh.out.1         userlogs
+hadoop-dnyanesh-datanode-Dnyanesh.out.2         yarn-dnyanesh-nodemanager-Dnyanesh.log
+hadoop-dnyanesh-datanode-Dnyanesh.out.3         yarn-dnyanesh-nodemanager-Dnyanesh.out
+hadoop-dnyanesh-namenode-Dnyanesh.log           yarn-dnyanesh-nodemanager-Dnyanesh.out.1
+hadoop-dnyanesh-namenode-Dnyanesh.out           yarn-dnyanesh-nodemanager-Dnyanesh.out.2
+hadoop-dnyanesh-namenode-Dnyanesh.out.1         yarn-dnyanesh-resourcemanager-Dnyanesh.log
+hadoop-dnyanesh-namenode-Dnyanesh.out.2         yarn-dnyanesh-resourcemanager-Dnyanesh.out
+hadoop-dnyanesh-namenode-Dnyanesh.out.3         yarn-dnyanesh-resourcemanager-Dnyanesh.out.1
+hadoop-dnyanesh-secondarynamenode-Dnyanesh.log  yarn-dnyanesh-resourcemanager-Dnyanesh.out.2
+hadoop-dnyanesh-secondarynamenode-Dnyanesh.out
+dnyanesh@Dnyanesh:/usr/local/hadoop/logs$ nano yarn-dnyanesh-nodemanager-Dnyanesh.log
+dnyanesh@Dnyanesh:/usr/local/hadoop/logs$ grep -i error yarn-dnyanesh-nodemanager-Dnyanesh.log
+2026-05-04 10:21:36,310 ERROR org.apache.hadoop.yarn.server.nodemanager.containermanager.AuxServices: Failed to initialize mapreduce_shuAle
+2026-05-04 10:21:36,315 ERROR org.apache.hadoop.yarn.server.nodemanager.NodeManager: Error starting NodeManager
+2026-05-05 03:17:42,943 ERROR org.apache.hadoop.yarn.server.nodemanager.containermanager.AuxServices: Failed to initialize mapreduce_shuAle
+2026-05-05 03:17:42,953 ERROR org.apache.hadoop.yarn.server.nodemanager.NodeManager: Error starting NodeManager
+2026-05-05 03:43:51,906 ERROR org.apache.hadoop.yarn.server.nodemanager.containermanager.AuxServices: Failed to initialize mapreduce_shuAle
+2026-05-05 03:43:51,910 ERROR org.apache.hadoop.yarn.server.nodemanager.NodeManager: Error starting NodeManager
+dnyanesh@Dnyanesh:/usr/local/hadoop/logs$ nano /usr/local/hadoop/etc/hadoop/yarn-site.xml
+Step 2: Find this line
+
+You will see something like:
+
+<name>yarn.nodemanager.aux-services</name>
+<value>mapreduce_shuAle</value>
+
+✅ Step 3: Correct it
+
+Change to:
+
+<property>
+  <name>yarn.nodemanager.aux-services</name>
+  <value>mapreduce_shuffle</value>
+</property>
+dnyanesh@Dnyanesh:/usr/local/hadoop/logs$ stop-yarn.sh
+stopping yarn daemons
+stopping resourcemanager
+localhost: no nodemanager to stop
+no proxyserver to stop
+dnyanesh@Dnyanesh:/usr/local/hadoop/logs$ stop-dfs.sh
+26/05/05 03:48:10 WARN util.NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+Stopping namenodes on [localhost]
+localhost: stopping namenode
+localhost: stopping datanode
+Stopping secondary namenodes [0.0.0.0]
+0.0.0.0: stopping secondarynamenode
+26/05/05 03:48:29 WARN util.NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+dnyanesh@Dnyanesh:/usr/local/hadoop/logs$ start-dfs.sh
+26/05/05 03:49:04 WARN util.NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+Starting namenodes on [localhost]
+localhost: starting namenode, logging to /usr/local/hadoop/logs/hadoop-dnyanesh-namenode-Dnyanesh.out
+localhost: starting datanode, logging to /usr/local/hadoop/logs/hadoop-dnyanesh-datanode-Dnyanesh.out
+Starting secondary namenodes [0.0.0.0]
+0.0.0.0: starting secondarynamenode, logging to /usr/local/hadoop/logs/hadoop-dnyanesh-secondarynamenode-Dnyanesh.out
+26/05/05 03:49:21 WARN util.NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+dnyanesh@Dnyanesh:/usr/local/hadoop/logs$ start-yarn.sh
+starting yarn daemons
+starting resourcemanager, logging to /usr/local/hadoop/logs/yarn-dnyanesh-resourcemanager-Dnyanesh.out
+localhost: starting nodemanager, logging to /usr/local/hadoop/logs/yarn-dnyanesh-nodemanager-Dnyanesh.out
+dnyanesh@Dnyanesh:/usr/local/hadoop/logs$ jps
+4848 NameNode
+5843 Jps
+5203 SecondaryNameNode
+2391 RunJar
+5368 ResourceManager
+2555 RunJar
+5003 DataNode
+5501 NodeManager
+dnyanesh@Dnyanesh:/usr/local/hadoop/logs$ hive
