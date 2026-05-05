@@ -1,0 +1,71 @@
+# ------------------ 1. Import Libraries ------------------ 
+import pandas as pd 
+import seaborn as sns 
+import matplotlib.pyplot as plt 
+
+# ------------------ 2. Load Dataset ------------------ 
+df = pd.read_csv('AirQuality.csv', sep=';') 
+
+# ------------------ 3. Data Cleaning ------------------ 
+df.drop(['Unnamed: 15', 'Unnamed: 16'], axis=1, inplace=True, errors='ignore') 
+
+cols = ['CO(GT)', 'C6H6(GT)', 'T', 'RH', 'AH'] 
+
+for col in cols: 
+    df[col] = df[col].astype(str).str.replace(',', '.').astype(float) 
+
+df.dropna(inplace=True) 
+
+df.rename(columns={'T':'Temperature', 'RH':'Humidity', 'AH':'AbsHumidity'}, inplace=True) 
+
+# Style
+sns.set(style="whitegrid")
+
+# ------------------ 4. Visualization ------------------ 
+
+# 1. Heatmap
+plt.figure(figsize=(10,6)) 
+sns.heatmap(df.corr(numeric_only=True), annot=True, cmap='coolwarm') 
+plt.title("Correlation Heatmap") 
+plt.tight_layout()
+plt.show() 
+
+# 2. Line Plot (trend)
+plt.figure(figsize=(8,4))
+sns.lineplot(data=df, x='Temperature', y='AbsHumidity') 
+plt.title("Temperature vs Absolute Humidity") 
+plt.xlabel("Temperature")
+plt.ylabel("Absolute Humidity")
+plt.show() 
+
+# 3. Bar Plot (categorize temp for better meaning)
+plt.figure(figsize=(8,4))
+df['Temp_Bin'] = pd.cut(df['Temperature'], bins=5)
+sns.barplot(x='Temp_Bin', y='CO(GT)', data=df)
+plt.xticks(rotation=45)
+plt.title("Average CO Levels by Temperature Range")
+plt.xlabel("Temperature Range")
+plt.ylabel("CO(GT)")
+plt.show()
+
+# 4. Scatter Plot
+plt.figure(figsize=(6,4))
+sns.scatterplot(x='Temperature', y='CO(GT)', data=df) 
+plt.title("Temperature vs CO") 
+plt.xlabel("Temperature")
+plt.ylabel("CO(GT)")
+plt.show() 
+
+# 5. Histogram
+plt.figure(figsize=(6,4))
+sns.histplot(df['Temperature'], bins=20, kde=True) 
+plt.title("Temperature Distribution") 
+plt.xlabel("Temperature")
+plt.show() 
+
+# 6. Boxplot
+plt.figure(figsize=(6,4))
+sns.boxplot(x=df['Temperature']) 
+plt.title("Temperature Boxplot") 
+plt.xlabel("Temperature")
+plt.show()
