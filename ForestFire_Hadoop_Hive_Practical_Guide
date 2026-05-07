@@ -1,0 +1,317 @@
+PHASE 1: Open Terminal
+
+Press:
+
+Ctrl + Alt + T
+PHASE 2: Check Required Software
+Step 1: Check Java
+java -version
+
+If installed:
+
+openjdk version ...
+
+If command not found:
+
+Java not installed
+Step 2: Check Python
+python3 --version
+
+Expected:
+
+Python 3.x.x
+Step 3: Check Hadoop
+hadoop version
+
+Expected:
+
+Hadoop 2.9.0
+Step 4: Check Hive
+hive --version
+IMPORTANT
+
+If Hadoop/Hive commands not found:
+
+Inform examiner immediately
+Means software not installed/configured
+
+Without Hadoop installed:
+❌ Practical cannot run.
+
+PHASE 3: Start Hadoop
+Step 5: Start HDFS
+start-dfs.sh
+Step 6: Start YARN
+start-yarn.sh
+Step 7: Verify Hadoop Services
+jps
+
+Expected:
+
+NameNode
+DataNode
+ResourceManager
+NodeManager
+COMMON ERROR
+start-dfs.sh: command not found
+Fix
+
+Run:
+
+source ~/.bashrc
+
+Then retry.
+
+PHASE 4: Create Project Folder
+Step 8: Create Directory
+mkdir forestfire
+Step 9: Enter Folder
+cd forestfire
+PHASE 5: Create Dataset
+Step 10: Create CSV File
+nano forestfires.csv
+
+Paste:
+
+temp,RH,wind,area
+8.2,51,6.7,0
+18.0,33,0.9,0
+14.6,33,1.3,0
+8.3,97,4.0,0.2
+11.4,99,1.8,0
+22.2,29,5.4,5.1
+Save File
+
+Press:
+
+Ctrl + O
+Enter
+Ctrl + X
+Verify File
+cat forestfires.csv
+PHASE 6: Create Mapper
+Step 11: Create Mapper
+nano mapper.py
+
+Paste:
+
+#!/usr/bin/env python3
+
+import sys
+
+next(sys.stdin)
+
+for line in sys.stdin:
+    line = line.strip()
+    fields = line.split(",")
+
+    if len(fields) == 4:
+        area = float(fields[3])
+
+        if area > 0:
+            print("Fire", 1)
+        else:
+            print("NoFire", 1)
+Save
+Ctrl + O
+Enter
+Ctrl + X
+PHASE 7: Create Reducer
+Step 12: Create Reducer
+nano reducer.py
+
+Paste:
+
+#!/usr/bin/env python3
+
+import sys
+
+current_key = None
+current_count = 0
+
+for line in sys.stdin:
+    key, value = line.strip().split()
+
+    value = int(value)
+
+    if current_key == key:
+        current_count += value
+    else:
+        if current_key:
+            print(current_key, current_count)
+
+        current_key = key
+        current_count = value
+
+if current_key:
+    print(current_key, current_count)
+Save
+Ctrl + O
+Enter
+Ctrl + X
+PHASE 8: Give Permissions
+Step 13
+chmod +x mapper.py
+chmod +x reducer.py
+IMPORTANT VIVA
+Why chmod +x used?
+
+To give execution permission to Python scripts.
+
+PHASE 9: Create HDFS Input Folder
+Step 14
+hdfs dfs -mkdir /forestinput
+COMMON ERROR
+File exists
+
+Ignore it.
+
+OR delete old folder:
+
+hdfs dfs -rm -r /forestinput
+
+Then recreate.
+
+Step 15: Upload Dataset
+hdfs dfs -put forestfires.csv /forestinput
+COMMON ERROR
+File exists
+
+Delete old file:
+
+hdfs dfs -rm /forestinput/forestfires.csv
+
+Then reupload.
+
+Step 16: Verify Upload
+hdfs dfs -ls /forestinput
+PHASE 10: Find Streaming Jar
+Step 17
+which hadoop
+
+Expected:
+
+/usr/local/hadoop/bin/hadoop
+Step 18: Check Streaming Jar
+ls /usr/local/hadoop/share/hadoop/tools/lib/
+
+Find:
+
+hadoop-streaming-2.9.0.jar
+VERY IMPORTANT ERROR
+
+You previously used:
+
+hadoop-streaming-3.3.6.jar
+
+Wrong version.
+
+Correct version on your PC:
+
+hadoop-streaming-2.9.0.jar
+PHASE 11: Remove Old Output
+Step 19
+hdfs dfs -rm -r /forestoutput
+COMMON ERROR
+No such file
+
+Ignore it.
+
+PHASE 12: Run Hadoop Streaming
+Step 20
+hadoop jar /usr/local/hadoop/share/hadoop/tools/lib/hadoop-streaming-2.9.0.jar \
+-input /forestinput/forestfires.csv \
+-output /forestoutput \
+-mapper mapper.py \
+-reducer reducer.py \
+-file mapper.py \
+-file reducer.py
+SUCCESS OUTPUT
+
+Look for:
+
+completed successfully
+PHASE 13: View Output
+Step 21
+hdfs dfs -cat /forestoutput/part-00000
+
+Expected:
+
+Fire 2
+NoFire 4
+HOW OUTPUT CAME
+area	Result
+0	NoFire
+0	NoFire
+0	NoFire
+0.2	Fire
+0	NoFire
+5.1	Fire
+
+Final:
+
+Fire = 2
+NoFire = 4
+PHASE 14: Hive Part
+Step 22: Open Hive
+hive
+COMMON ERROR
+Metastore not initialized
+
+Error:
+
+MetaException
+FIX
+
+Exit Hive:
+
+exit;
+
+Run:
+
+rm -rf metastore_db
+rm -f derby.log
+schematool -dbType derby -initSchema
+
+Wait for:
+
+schemaTool completed
+
+Then reopen Hive.
+
+Step 23: Create Database
+CREATE DATABASE forestdb;
+Step 24: Use Database
+USE forestdb;
+Step 25: Create Table
+CREATE TABLE forestfire(
+temp FLOAT,
+RH INT,
+wind FLOAT,
+area FLOAT
+)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ','
+STORED AS TEXTFILE;
+Step 26: Load Dataset
+LOAD DATA LOCAL INPATH '/home/dnyanesh/forestfire/forestfires.csv'
+INTO TABLE forestfire;
+COMMON ERROR
+Invalid path
+
+Check actual path:
+
+pwd
+
+Use correct path.
+
+Step 27: View Data
+SELECT * FROM forestfire;
+Step 28: Data Mining Queries
+Count Records
+SELECT COUNT(*) FROM forestfire;
+Average Temperature
+SELECT AVG(temp) FROM forestfire;
+Fire Records
+SELECT * FROM forestfire
+WHERE area > 0;
