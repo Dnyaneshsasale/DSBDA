@@ -1,0 +1,65 @@
+You have to install pycharm if not and mongodb compass 
+Open PyCharm Terminal
+Bottom terminal in PyCharm.
+//pip install requests
+//pip install beautifulsoup4
+//pip install pymongo
+
+//connect with mongodb
+
+
+import requests
+from bs4 import BeautifulSoup
+from pymongo import MongoClient
+
+# MongoDB Connection
+client = MongoClient("mongodb://127.0.0.1:27017/")
+
+# Database
+db = client["ecommerce"]
+
+# Collection
+collection = db["reviews"]
+
+# Demo Ecommerce URL
+url = "https://webscraper.io/test-sites/e-commerce/allinone/computers/laptops"
+
+# Headers
+headers = {
+    "User-Agent": "Mozilla/5.0"
+}
+
+# Request webpage
+response = requests.get(url, headers=headers)
+
+print("Status Code:", response.status_code)
+
+# Parse HTML
+soup = BeautifulSoup(response.text, "html.parser")
+
+# Find products
+products = soup.find_all("div", class_="thumbnail")
+
+print("Products Found:", len(products))
+
+# Extract details
+for product in products[:5]:
+
+    name = product.find("a", class_="title")
+
+    review = product.find("p", class_="description")
+
+    rating = product.find("div", class_="ratings")
+
+    data = {
+        "Customer_Name": "Anonymous",
+        "Product_Name": name.text.strip() if name else "N/A",
+        "Review": review.text.strip() if review else "No Review",
+        "Rating": rating.text.strip() if rating else "No Rating"
+    }
+
+    collection.insert_one(data)
+
+    print(data)
+
+print("Data Stored Successfully in MongoDB")
