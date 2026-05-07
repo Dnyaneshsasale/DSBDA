@@ -1,0 +1,252 @@
+PHASE 1: Initial System Check
+Step 1: Open Terminal
+
+Press:
+
+Ctrl + Alt + T
+
+Terminal opens.
+
+Step 2: Check Java Installed or Not
+
+Type:
+
+java -version
+
+If Java installed, you’ll see version like:
+
+openjdk version "11"
+Step 3: Check Hadoop Installed or Not
+
+Type:
+
+hadoop version
+
+If installed, you’ll see Hadoop version.
+
+Example:
+
+Hadoop 3.3.6
+Step 4: Check Hadoop Daemons
+
+Type:
+
+jps
+If Hadoop Already Running
+
+You may see:
+
+NameNode
+DataNode
+SecondaryNameNode
+ResourceManager
+NodeManager
+
+Then proceed directly.
+
+If Nothing Important Appears
+
+Start Hadoop manually.
+
+PHASE 2: Start Hadoop
+Step 5: Start HDFS
+start-dfs.sh
+Step 6: Start YARN
+start-yarn.sh
+Step 7: Verify Again
+jps
+
+You should now see daemons.
+
+PHASE 3: Create Working Folder
+Step 8: Create Folder
+mkdir analyzelogs
+Step 9: Enter Folder
+cd analyzelogs
+PHASE 4: Create Input File
+Step 10: Create Log File
+nano logfile.txt
+
+Paste:
+
+10.1.1.236
+10.1.1.236
+10.1.181.142
+10.1.181.142
+10.1.181.142
+10.103.190.81
+10.103.190.81
+Step 11: Save File
+
+Press:
+
+Ctrl + O
+Enter
+Ctrl + X
+Step 12: Verify File
+cat logfile.txt
+PHASE 5: Create Mapper Program
+Step 13: Create Mapper File
+nano LogMapper.java
+
+Paste Mapper code.
+import java.io.IOException;
+import java.util.StringTokenizer;
+
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Mapper;
+
+public class LogMapper extends Mapper<Object, Text, Text, IntWritable>
+{
+    private final static IntWritable one = new IntWritable(1);
+    private Text word = new Text();
+
+    public void map(Object key, Text value, Context context)
+            throws IOException, InterruptedException
+    {
+        StringTokenizer itr = new StringTokenizer(value.toString());
+
+        while (itr.hasMoreTokens())
+        {
+            word.set(itr.nextToken());
+            context.write(word, one);
+        }
+    }
+}
+
+Save:
+
+Ctrl + O
+Enter
+Ctrl + X
+PHASE 6: Create Reducer Program
+Step 14: Create Reducer File
+nano LogReducer.java
+
+Paste Reducer code.
+
+import java.io.IOException;
+
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Reducer;
+
+public class LogReducer extends Reducer<Text, IntWritable, Text, IntWritable>
+{
+    public void reduce(Text key, Iterable<IntWritable> values,
+            Context context) throws IOException, InterruptedException
+    {
+        int sum = 0;
+
+        for (IntWritable val : values)
+        {
+            sum += val.get();
+        }
+
+        context.write(key, new IntWritable(sum));
+    }
+}
+
+Save and exit.
+
+PHASE 7: Create Driver Program
+Step 15: Create Driver File
+nano LogDriver.java
+
+Paste Driver code.
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+
+public class LogDriver
+{
+    public static void main(String[] args) throws Exception
+    {
+        Configuration conf = new Configuration();
+
+        Job job = Job.getInstance(conf, "Log Count");
+
+        job.setJarByClass(LogDriver.class);
+
+        job.setMapperClass(LogMapper.class);
+        job.setReducerClass(LogReducer.class);
+
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(IntWritable.class);
+
+        FileInputFormat.addInputPath(job, new Path(args[0]));
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));
+
+        System.exit(job.waitForCompletion(true) ? 0 : 1);
+    }
+}
+
+Save and exit.
+
+PHASE 8: Verify All Files
+Step 16: Check Files
+ls
+
+You should see:
+
+LogDriver.java
+LogMapper.java
+LogReducer.java
+logfile.txt
+PHASE 9: Compile Java Files
+Step 17: Compile
+javac -classpath `hadoop classpath` -d . LogMapper.java LogReducer.java LogDriver.java
+Step 18: Verify Class Files
+ls
+
+You should see:
+
+LogMapper.class
+LogReducer.class
+LogDriver.class
+PHASE 10: Create JAR File
+Step 19: Create Jar
+jar -cvf logcount.jar *.class
+Step 20: Verify Jar
+ls
+
+You should see:
+
+logcount.jar
+PHASE 11: HDFS Operations
+Step 21: Create Input Folder in HDFS
+hdfs dfs -mkdir /inputlogs
+Step 22: Upload Input File
+hdfs dfs -put logfile.txt /inputlogs
+Step 23: Verify Upload
+hdfs dfs -ls /inputlogs
+PHASE 12: Execute MapReduce Job
+Step 24: Run Job
+hadoop jar logcount.jar LogDriver /inputlogs /outputlogs
+IMPORTANT
+
+If you get:
+
+Output directory already exists
+
+Then delete old output:
+
+hdfs dfs -rm -r /outputlogs
+
+Then rerun Step 24.
+
+PHASE 13: View Output
+Step 25: Display Result
+hdfs dfs -cat /outputlogs/part-r-00000
+
+Expected:
+
+10.1.1.236      2
+10.1.181.142    3
+10.103.190.81   2
